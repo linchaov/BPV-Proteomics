@@ -100,6 +100,11 @@ prepare_model_data <- function(trait, outcome, group) {
   event <- paste0("Incident_", outcome$stem, "_i0")
   time <- paste0("Time_", outcome$stem, "_i0")
   adjusters <- c(mean_bp, exposure, clinical_covars)
+  # Include antihypertensive medication only in the full-cohort model.
+  if (group != "All") {
+    adjusters <- setdiff(adjusters, "Baseline_AntiHypertensive_i0")
+  }
+
   included <- make_stratum(data, group) &
     as.character(data[[baseline]]) %in% c("No", "0", "FALSE")
   d <- data[which(included), unique(c("ID", score, adjusters, event, time,
@@ -110,7 +115,7 @@ prepare_model_data <- function(trait, outcome, group) {
   d$.death_time <- as.numeric(as.character(d$Time_Death_Summary_i0))
   d <- droplevels(d[complete.cases(d[, c(score, adjusters, ".event", ".time",
     ".death", ".death_time")]) & d$.time > 0 & d$.death_time > 0, , drop = FALSE])
-  # Remove covariates constant within a stratum, including medication in nonusers.
+  # Remove covariates constant within a stratum.
   adjusters <- adjusters[vapply(d[, adjusters, drop = FALSE],
     function(x) length(unique(x)) > 1L, logical(1))]
   list(data = d, score = score, adjusters = adjusters)
